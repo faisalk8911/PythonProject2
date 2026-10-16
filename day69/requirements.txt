@@ -1,0 +1,12 @@
+Flask
+Flask-CKEditor
+Flask-Login
+Flask-SQLAlchemy
+Flask-WTF
+SQLAlchemy
+Werkzeug
+WTForms
+email-validator
+bleach
+gunicorn
+psycopg2-binary
