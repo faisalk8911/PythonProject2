@@ -1,3 +1,4 @@
+
 import os
 import hashlib
 
@@ -80,15 +81,30 @@ db = SQLAlchemy(
 
 app = Flask(__name__)
 
-app.config[
-    "SQLALCHEMY_DATABASE_URI"
-] = "sqlite:///posts.db"
+# Use PostgreSQL on Render and SQLite locally.
+database_url = os.environ.get("DATABASE_URL")
 
-app.config[
-    "SECRET_KEY"
-] = os.environ.get(
-    "FLASK_SECRET_KEY",
-    "development-only-key"
+if database_url and database_url.startswith("postgres://"):
+    database_url = database_url.replace(
+        "postgres://",
+        "postgresql://",
+        1
+    )
+
+app.config["SQLALCHEMY_DATABASE_URI"] = (
+    database_url or "sqlite:///posts.db"
+)
+
+# Require a secret key on Render.
+secret_key = os.environ.get("FLASK_SECRET_KEY")
+
+if database_url and not secret_key:
+    raise RuntimeError(
+        "FLASK_SECRET_KEY must be configured on Render"
+    )
+
+app.config["SECRET_KEY"] = (
+    secret_key or "development-only-key"
 )
 
 db.init_app(app)
@@ -105,16 +121,9 @@ ckeditor = CKEditor(app)
 # GRAVATAR HELPER
 # -----------------------------
 
-def gravatar_url(
-    email,
-    size=100
-):
+def gravatar_url(email, size=100):
 
-    clean_email = (
-        email
-        .strip()
-        .lower()
-    )
+    clean_email = email.strip().lower()
 
     email_hash = hashlib.md5(
         clean_email.encode("utf-8")
@@ -147,10 +156,7 @@ login_manager.login_view = "login"
 # USER TABLE
 # -----------------------------
 
-class User(
-    UserMixin,
-    db.Model
-):
+class User(UserMixin, db.Model):
 
     id: Mapped[int] = mapped_column(
         primary_key=True
@@ -267,22 +273,15 @@ def load_user(user_id):
 def admin_only(function):
 
     @wraps(function)
-    def decorated_function(
-        *args,
-        **kwargs
-    ):
+    def decorated_function(*args, **kwargs):
 
         if (
             not current_user.is_authenticated
             or current_user.id != 1
         ):
-
             abort(403)
 
-        return function(
-            *args,
-            **kwargs
-        )
+        return function(*args, **kwargs)
 
     return decorated_function
 
@@ -316,9 +315,7 @@ class RegisterForm(FlaskForm):
         ]
     )
 
-    submit = SubmitField(
-        "Register"
-    )
+    submit = SubmitField("Register")
 
 
 # -----------------------------
@@ -342,9 +339,7 @@ class LoginForm(FlaskForm):
         ]
     )
 
-    submit = SubmitField(
-        "Login"
-    )
+    submit = SubmitField("Login")
 
 
 # -----------------------------
@@ -389,9 +384,7 @@ class CreatePostForm(FlaskForm):
         ]
     )
 
-    submit = SubmitField(
-        "Submit Post"
-    )
+    submit = SubmitField("Submit Post")
 
 
 # -----------------------------
@@ -407,9 +400,7 @@ class CommentForm(FlaskForm):
         ]
     )
 
-    submit = SubmitField(
-        "Submit Comment"
-    )
+    submit = SubmitField("Submit Comment")
 
 
 # -----------------------------
@@ -417,7 +408,6 @@ class CommentForm(FlaskForm):
 # -----------------------------
 
 with app.app_context():
-
     db.create_all()
 
 
@@ -446,15 +436,11 @@ def home():
 
 @app.route(
     "/register",
-    methods=[
-        "GET",
-        "POST"
-    ]
+    methods=["GET", "POST"]
 )
 def register():
 
     form = RegisterForm()
-
     message = None
 
     if form.validate_on_submit():
@@ -486,17 +472,13 @@ def register():
                 password=hashed_password
             )
 
-            db.session.add(
-                new_user
-            )
+            db.session.add(new_user)
 
             try:
 
                 db.session.commit()
 
-                login_user(
-                    new_user
-                )
+                login_user(new_user)
 
                 return redirect(
                     url_for("home")
@@ -524,15 +506,11 @@ def register():
 
 @app.route(
     "/login",
-    methods=[
-        "GET",
-        "POST"
-    ]
+    methods=["GET", "POST"]
 )
 def login():
 
     form = LoginForm()
-
     message = None
 
     if form.validate_on_submit():
@@ -554,9 +532,7 @@ def login():
             form.password.data
         ):
 
-            login_user(
-                user
-            )
+            login_user(user)
 
             return redirect(
                 url_for("home")
@@ -593,10 +569,7 @@ def logout():
 
 @app.route(
     "/post/<int:post_id>",
-    methods=[
-        "GET",
-        "POST"
-    ]
+    methods=["GET", "POST"]
 )
 def show_post(post_id):
 
@@ -621,9 +594,7 @@ def show_post(post_id):
             parent_post=requested_post
         )
 
-        db.session.add(
-            new_comment
-        )
+        db.session.add(new_comment)
 
         db.session.commit()
 
@@ -647,10 +618,7 @@ def show_post(post_id):
 
 @app.route(
     "/new-post",
-    methods=[
-        "GET",
-        "POST"
-    ]
+    methods=["GET", "POST"]
 )
 @admin_only
 def add_new_post():
@@ -670,9 +638,7 @@ def add_new_post():
             )
         )
 
-        db.session.add(
-            new_post
-        )
+        db.session.add(new_post)
 
         db.session.commit()
 
@@ -693,10 +659,7 @@ def add_new_post():
 
 @app.route(
     "/edit-post/<int:post_id>",
-    methods=[
-        "GET",
-        "POST"
-    ]
+    methods=["GET", "POST"]
 )
 @admin_only
 def edit_post(post_id):
@@ -747,9 +710,7 @@ def delete_post(post_id):
         post_id
     )
 
-    db.session.delete(
-        post
-    )
+    db.session.delete(post)
 
     db.session.commit()
 
@@ -765,5 +726,5 @@ def delete_post(post_id):
 if __name__ == "__main__":
 
     app.run(
-        debug=True
+        debug=not bool(os.environ.get("DATABASE_URL"))
     )
