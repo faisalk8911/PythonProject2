@@ -84,10 +84,22 @@ app = Flask(__name__)
 # Use PostgreSQL on Render and SQLite locally.
 database_url = os.environ.get("DATABASE_URL")
 
+# Explicitly select the psycopg2 driver.
+# requirements.txt includes psycopg2-binary.
+
 if database_url and database_url.startswith("postgres://"):
+
     database_url = database_url.replace(
         "postgres://",
+        "postgresql+psycopg2://",
+        1
+    )
+
+elif database_url and database_url.startswith("postgresql://"):
+
+    database_url = database_url.replace(
         "postgresql://",
+        "postgresql+psycopg2://",
         1
     )
 
@@ -99,6 +111,7 @@ app.config["SQLALCHEMY_DATABASE_URI"] = (
 secret_key = os.environ.get("FLASK_SECRET_KEY")
 
 if database_url and not secret_key:
+
     raise RuntimeError(
         "FLASK_SECRET_KEY must be configured on Render"
     )
@@ -279,6 +292,7 @@ def admin_only(function):
             not current_user.is_authenticated
             or current_user.id != 1
         ):
+
             abort(403)
 
         return function(*args, **kwargs)
@@ -315,7 +329,9 @@ class RegisterForm(FlaskForm):
         ]
     )
 
-    submit = SubmitField("Register")
+    submit = SubmitField(
+        "Register"
+    )
 
 
 # -----------------------------
@@ -339,7 +355,9 @@ class LoginForm(FlaskForm):
         ]
     )
 
-    submit = SubmitField("Login")
+    submit = SubmitField(
+        "Login"
+    )
 
 
 # -----------------------------
@@ -384,7 +402,9 @@ class CreatePostForm(FlaskForm):
         ]
     )
 
-    submit = SubmitField("Submit Post")
+    submit = SubmitField(
+        "Submit Post"
+    )
 
 
 # -----------------------------
@@ -400,7 +420,9 @@ class CommentForm(FlaskForm):
         ]
     )
 
-    submit = SubmitField("Submit Comment")
+    submit = SubmitField(
+        "Submit Comment"
+    )
 
 
 # -----------------------------
@@ -408,6 +430,7 @@ class CommentForm(FlaskForm):
 # -----------------------------
 
 with app.app_context():
+
     db.create_all()
 
 
@@ -594,7 +617,9 @@ def show_post(post_id):
             parent_post=requested_post
         )
 
-        db.session.add(new_comment)
+        db.session.add(
+            new_comment
+        )
 
         db.session.commit()
 
@@ -638,7 +663,9 @@ def add_new_post():
             )
         )
 
-        db.session.add(new_post)
+        db.session.add(
+            new_post
+        )
 
         db.session.commit()
 
@@ -710,7 +737,9 @@ def delete_post(post_id):
         post_id
     )
 
-    db.session.delete(post)
+    db.session.delete(
+        post
+    )
 
     db.session.commit()
 
